@@ -195,11 +195,13 @@ QuantumNetworkSimulator::GenerateQubitsPure (
 
   // onto the left half
   m_dm.appendTensor (m_dm_id++, exatn::getTensor (name), {}, leg_dir, false);
+  NS_LOG_DEBUG(YELLOW_CODE << m_dm_id - 1 << END_CODE);
   unsigned tensor_id = m_dm.getMaxTensorId ();
   assert (tensor_id == m_dm_id - 1);
 
   // onto the right half
   m_dm.appendTensor (m_dm_id++, exatn::getTensor (name), {}, leg_dir_dag, true);
+  NS_LOG_DEBUG(YELLOW_CODE << m_dm_id - 1 << END_CODE);
   unsigned tensor_id_dag = m_dm.getMaxTensorId ();
   assert (tensor_id_dag == m_dm_id - 1);
 
@@ -247,6 +249,7 @@ QuantumNetworkSimulator::GenerateQubitsMixed (
     }
 
   m_dm.appendTensor (m_dm_id++, exatn::getTensor (name), {}, leg_dirs, false);
+  NS_LOG_DEBUG(YELLOW_CODE << m_dm_id - 1 << END_CODE);
   unsigned tensor_id = m_dm.getMaxTensorId ();
 
   for (unsigned i = 0; i < delta_height; ++i)
@@ -326,6 +329,7 @@ QuantumNetworkSimulator::ApplyGate (
   for (const std::string &qubit : qubits)
     leg_dir.push_back (exatn::LegDirection::OUTWARD);
   m_dm.appendTensor (m_dm_id++, exatn::getTensor (gate), pairing, leg_dir, false);
+  NS_LOG_DEBUG(YELLOW_CODE << m_dm_id - 1 << END_CODE);
 
   unsigned tensor_id = m_dm.getMaxTensorId ();
   assert (tensor_id == m_dm_id - 1);
@@ -352,6 +356,7 @@ QuantumNetworkSimulator::ApplyGate (
     leg_dir_dag.push_back (exatn::LegDirection::INWARD);
 
   m_dm.appendTensor (m_dm_id++, exatn::getTensor (gate), pairing_dag, leg_dir_dag, true);
+  NS_LOG_DEBUG(YELLOW_CODE << m_dm_id - 1 << END_CODE);
   unsigned tensor_id_dag = m_dm.getMaxTensorId ();
   assert (tensor_id_dag == m_dm_id - 1);
 
@@ -417,6 +422,7 @@ QuantumNetworkSimulator::ApplyOperation (
   leg_dir.push_back (exatn::LegDirection::OUTWARD);
 
   m_dm.appendTensor (m_dm_id++, exatn::getTensor (name), pairing, leg_dir, false);
+  NS_LOG_DEBUG(YELLOW_CODE << m_dm_id - 1 << END_CODE);
 
   // updating qubit2tensor
   for (unsigned i = 0; i < qubits.size (); ++i)
@@ -440,6 +446,7 @@ QuantumNetworkSimulator::ApplyOperation (
   leg_dir_dag.push_back (exatn::LegDirection::INWARD);
 
   m_dm.appendTensor (m_dm_id++, exatn::getTensor (name), pairing_dag, leg_dir_dag, true);
+  NS_LOG_DEBUG(YELLOW_CODE << m_dm_id - 1 << END_CODE);
 
   for (unsigned i = 0; i < qubits.size (); ++i)
     {
@@ -450,7 +457,7 @@ QuantumNetworkSimulator::ApplyOperation (
 }
 
 bool
-QuantumNetworkSimulator::ApplyControledOperation (
+QuantumNetworkSimulator::ApplyControlledOperation (
     const std::string &orig_owner,
     const std::string &orig_gate,
     const std::string &gate,
@@ -711,8 +718,7 @@ QuantumNetworkSimulator::PeekDM (
 
 bool
 QuantumNetworkSimulator::PartialTrace (
-    const std::vector<std::string> &qubits,
-    std::vector<std::complex<double>> &dm
+  const std::vector<std::string> &qubits
 )
 {
   Time moment = Simulator::Now ();
@@ -751,6 +757,7 @@ QuantumNetworkSimulator::PartialTrace (
            {m_dm.getTensorConn (tensor_id_dag[i])->getTensorLeg (leg_idx_dag[i]).getDimensionId (),
             1}},
           {exatn::LegDirection::INWARD, exatn::LegDirection::OUTWARD}, false);
+      NS_LOG_DEBUG(YELLOW_CODE << m_dm_id - 1 << END_CODE);
     }
 
   NS_LOG_LOGIC ("(qubit(s) named");
@@ -766,12 +773,12 @@ QuantumNetworkSimulator::PartialTrace (
 }
 
 std::vector<std::complex<double>>
-QuantumNetworkSimulator::Contract ()
+QuantumNetworkSimulator::Contract (const std::string &optimizer)
 {
   NS_LOG_INFO (BLUE_CODE << "Contracting the tensor network" << END_CODE);
 
   // evaluate the tensor network to get the density matrix
-  Evaluate (&m_dm);
+  Evaluate (&m_dm, optimizer);
   std::vector<std::complex<double>> dm;
   auto talsh_tensor = exatn::getLocalTensor (m_dm.getTensor (0)->getName ());
   const std::complex<double> *body_ptr;
@@ -819,28 +826,9 @@ QuantumNetworkSimulator::Contract ()
   m_dm.rename (AllocExatnName ());
   m_dm_id = 1;
   m_dm.appendTensor (m_dm_id++, exatn::getTensor (contracted_name), {}, leg_dirs, false);
-
+  NS_LOG_DEBUG(YELLOW_CODE << m_dm_id - 1 << END_CODE);
+   
   return dm;
-}
-
-
-void
-QuantumNetworkSimulator::Evaluate (exatn::TensorNetwork *circuit)
-{
-  // exatn::resetContrSeqOptimizer ("dummy");
-  // exatn::resetContrSeqOptimizer ("heuro");
-  exatn::resetContrSeqOptimizer ("greed");
-  // exatn::resetContrSeqOptimizer ("metis");
-  // exatn::resetContrSeqOptimizer ("cutnn");
-
-  auto start_time = std::chrono::high_resolution_clock::now ();
-  circuit->collapseIsometries ();
-  exatn::evaluateSync (*circuit);
-  auto end_time = std::chrono::high_resolution_clock::now ();
-  auto duration = std::chrono::duration_cast<std::chrono::seconds> (end_time - start_time);
-  NS_LOG_INFO (PURPLE_CODE << "Evaluating tensor network of size " << circuit->getNumTensors ()
-                           << " with time cost " << duration.count () << " s" << END_CODE);
-
 }
 
 double
@@ -988,6 +976,175 @@ QuantumNetworkSimulator::CalculateFidelity (
   return fidel;
 }
 
+/* the following functions and variables are for the "distill" optimizer only */
+
+// a subcircuit is identified by its smallest and largest tensor id (lo and hi)
+struct Subcircuit
+{
+  unsigned lo, hi, lc, rc;
+};
+
+std::vector<Subcircuit> subcircs;
+
+void
+QuantumNetworkSimulator::Checkpoint ()
+{
+  if (subcircs.size())
+    subcircs.back().hi = m_dm_id - 1;
+  subcircs.push_back({m_dm_id, m_dm_id});
+  NS_LOG_DEBUG (YELLOW_CODE << "Checkpoint: " << m_dm_id << END_CODE);
+}
+
+void
+SetChildren (
+  const unsigned &idx,
+  const unsigned &height
+) {
+  NS_LOG_DEBUG (YELLOW_CODE << "SetChildren: " << idx << " " << height << END_CODE);
+  if (height == 0) {
+    subcircs[idx].lc = idx;
+    subcircs[idx].rc = idx;
+    return;
+  }
+  subcircs[idx].lc = idx - (1 << height);
+  subcircs[idx].rc = idx - 1;
+  SetChildren(subcircs[idx].lc, height - 1);
+  SetChildren(subcircs[idx].rc, height - 1);
+}
+
+std::vector<unsigned> distill_seq;
+unsigned distill_id;
+
+std::vector<unsigned>
+AscendSequence (
+  const std::vector<unsigned> &ids
+)
+{
+  assert (ids.size () > 1);
+  std::vector<unsigned> contr_seq = {};
+  contr_seq.push_back (distill_id++); // result
+  contr_seq.push_back (ids[0]); // left
+  contr_seq.push_back (ids[1]); // right
+  for (unsigned i = 2; i < ids.size (); ++i, ++distill_id)
+    {
+      // ContrTriple
+      contr_seq.push_back (distill_id); // result
+      contr_seq.push_back (distill_id - 1); // left
+      contr_seq.push_back (ids[i]); // right
+    }
+  return contr_seq;
+}
+
+unsigned
+UpdateSequence (
+  const unsigned &curr_idx
+)
+{
+  NS_LOG_DEBUG (YELLOW_CODE << "UpdateSequence: " << curr_idx << END_CODE);
+  std::vector<unsigned> seq;
+  if (subcircs[curr_idx].lc != subcircs[curr_idx].rc) { // internal subcircuit
+    unsigned l = UpdateSequence(subcircs[curr_idx].lc);
+    unsigned r = UpdateSequence(subcircs[curr_idx].rc);
+    seq.push_back(l);
+    seq.push_back(r);
+  }
+  for (int i = subcircs[curr_idx].lo; i <= subcircs[curr_idx].hi; ++i) {
+    seq.push_back(i);
+  }
+  std::vector<unsigned> delta_seq = AscendSequence(seq);
+  // if (curr_idx == subcircs.size() - 1) { // the final / root subcircuit
+  //   // the final ContrTriple is 0: distill_id - 1, m_dm_id
+  //   // instead of      distill_id: distill_id - 1, m_dm_id
+  //   delta_seq[delta_seq.size() - 3] = 0;
+  // }
+  distill_seq.insert(distill_seq.end(), delta_seq.begin(), delta_seq.end());
+  return distill_id - 1;
+}
+
+void
+AssignDistillSequence () {
+  distill_seq.clear();
+  // construct the tree of subcircuits
+  SetChildren(subcircs.size() - 1, Log2(subcircs.size()));
+  // print the tree
+  NS_LOG_DEBUG (YELLOW_CODE << "Tree of subcircuits:" << END_CODE);
+  for (unsigned i = 0; i < subcircs.size(); ++i) {
+    NS_LOG_DEBUG (YELLOW_CODE << i << ": " << subcircs[i].lo << " " << subcircs[i].hi << " " << subcircs[i].lc << " " << subcircs[i].rc << END_CODE);
+  }
+
+  // contract the tensors before the first checkpoint
+  std::vector<unsigned> seq;
+  for (unsigned i = 1; i < subcircs[0].lo; ++i) {
+    seq.push_back(i);
+  }
+  distill_seq = AscendSequence(seq);
+  unsigned rem_id = distill_id - 1;
+
+  // recursively contract the subcircuits by traversing the tree
+  UpdateSequence(subcircs.size() - 1);
+
+  // contract the rem and the final subcircuit to 0
+  distill_seq.push_back(0);
+  distill_seq.push_back(rem_id);
+  distill_seq.push_back(distill_id - 1);
+}
+
+
+void
+QuantumNetworkSimulator::Evaluate (exatn::TensorNetwork *circuit, const std::string &optimizer)
+{
+  if (circuit == nullptr)
+    {
+      circuit = &m_dm;
+    }
+  NS_LOG_INFO (BLUE_CODE << "Evaluating the tensor network named " << circuit->getName () << END_CODE);
+
+  std::vector<std::string> opts = {"dummy", "heuro", "greed", "metis", "cutnn"};
+  if (std::find (opts.begin (), opts.end (), optimizer) != opts.end ()) // hit
+    {
+      exatn::resetContrSeqOptimizer (optimizer);
+    }
+  else if (optimizer == "ascend" && 2 < circuit->getMaxTensorId ())
+    {
+      // set the contraction sequence into an ascending order
+      unsigned new_tensor_id = circuit->getMaxTensorId () + 1;
+      std::vector<unsigned> contr_seq = {new_tensor_id++, 1, 2};
+      for (unsigned i = 3; i < circuit->getNumTensors (); ++i, ++new_tensor_id)
+        {
+          // ContrTriple
+          contr_seq.push_back (new_tensor_id); // result
+          contr_seq.push_back (new_tensor_id - 1); // left
+          contr_seq.push_back (i); // right
+        }
+      // ContrTriple
+      contr_seq.push_back (0); // result
+      contr_seq.push_back (new_tensor_id - 1); // left
+      contr_seq.push_back (circuit->getNumTensors ()); // right
+      circuit->importContractionSequence (contr_seq);
+    }
+  else if (optimizer == "distill" && 2 < circuit->getMaxTensorId ())
+    {
+      subcircs.back ().hi = m_dm_id - 1;
+      distill_id = m_dm_id;
+      AssignDistillSequence ();
+      subcircs.clear ();
+      circuit->importContractionSequence (distill_seq);
+    }
+  else // invalid optimizer, or too small a circuit
+    {
+      exatn::resetContrSeqOptimizer ("greed");
+    }
+  // exatn::printContractionSequence (circuit->exportContractionSequence ());
+
+  NS_LOG_INFO (PURPLE_CODE << "Evaluating tensor network of size " << circuit->getNumTensors ());
+  auto flops = exatn::getTotalFlopCount ();
+  auto time_start = exatn::Timer::timeInSecHR ();
+  circuit->collapseIsometries ();
+  exatn::evaluateSync (*circuit);
+  auto duration = exatn::Timer::timeInSecHR (time_start);
+  flops = exatn::getTotalFlopCount () - flops;
+  NS_LOG_INFO (" in " << duration << " secs" << END_CODE);
+}
 
 /* util */
 
@@ -1007,7 +1164,8 @@ QuantumNetworkSimulator::CheckValid (const std::vector<std::string> &qubits) con
         }
       if (!valid)
         {
-          NS_LOG_LOGIC (GREEN_CODE << "Skipping invalid qubit named " << qubit << END_CODE);
+          // NS_LOG_LOGIC (GREEN_CODE << "Skipping invalid qubit named " << qubit
+          //                          << " with zero defect :)" << END_CODE);
           return false;
         }
     }

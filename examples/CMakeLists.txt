@@ -56,6 +56,12 @@ build_lib_example(
     LIBRARIES_TO_LINK ${libquantum}
 )
 
+build_lib_example(
+    NAME ent-swap-lin-adapt-local-example
+    SOURCE_FILES ent-swap-lin-adapt-local-example.cc
+    LIBRARIES_TO_LINK ${libquantum}
+)
+
 # distillation
 
 build_lib_example(

@@ -119,13 +119,9 @@ DistillApp::Distillate ()
               .first->GetObject<DistributeEPRSrcProtocol> ();
       Simulator::Schedule (Seconds (2.1), &DistributeEPRSrcProtocol::GenerateAndDistributeEPR,
                            dist_epr_src_app, m_epr_goal);
-      std::vector<std::complex<double>> unused;
-      // Simulator::Schedule (Seconds (2.2), &QuantumPhyEntity::PeekDM, m_qphyent, "God",
-      //                      std::vector<std::string>{m_epr_goal.first, m_epr_goal.second}, unused);
+      
       Simulator::Schedule (Seconds (2.2), &DistributeEPRSrcProtocol::GenerateAndDistributeEPR,
                            dist_epr_src_app, m_epr_meas);
-      // Simulator::Schedule (Seconds (2.3), &QuantumPhyEntity::PeekDM, m_qphyent, "God",
-      //                      std::vector<std::string>{m_epr_meas.first, m_epr_meas.second}, unused);
       Simulator::Schedule (Seconds (2.3), &DistillApp::Send, this);
     }
   else

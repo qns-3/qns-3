@@ -63,7 +63,7 @@ EntSwapAdaptApp::EntanglementSwapping ()
                           "God", q_ket_0, std::vector<std::string>{flag_z});
 
   std::string last_qubit = m_qubits_former->GetQubit (m_qubits_former->GetSize () - 1);
-  std::vector<std::complex<double>> unused;
+  
   for (unsigned rank = 1; rank < m_qubits_former->GetSize () - 1; ++rank)
     {
       std::pair<std::string, std::string> qubits = {
@@ -87,7 +87,7 @@ EntSwapAdaptApp::EntanglementSwapping ()
                               std::vector<std::string>{flag_x, qubits.second});
       // the latter qubit not used anymore
       Simulator::ScheduleNow (&QuantumPhyEntity::PartialTrace, m_qphyent,
-                                std::vector<std::string>{qubits.second}, unused);
+                                std::vector<std::string>{qubits.second});
 
       Simulator::ScheduleNow(&QuantumPhyEntity::ApplyGate, m_qphyent,
                               "God", QNS_GATE_PREFIX + "CNOT",
@@ -95,11 +95,11 @@ EntSwapAdaptApp::EntanglementSwapping ()
                               std::vector<std::string>{flag_z, qubits.first});
       // the former qubit not used anymore
       Simulator::ScheduleNow (&QuantumPhyEntity::PartialTrace, m_qphyent,
-                                std::vector<std::string>{qubits.first}, unused);
+                                std::vector<std::string>{qubits.first});
     }
 
   // God apply control operations
-  Simulator::ScheduleNow (&QuantumPhyEntity::ApplyControledOperation, m_qphyent,
+  Simulator::ScheduleNow (&QuantumPhyEntity::ApplyControlledOperation, m_qphyent,
                           GetNode ()->GetObject<QuantumNode> ()->GetOwner (), QNS_GATE_PREFIX + "PX",
                           QNS_GATE_PREFIX + "CX", cnot,
                           std::vector<std::string>{flag_x},
@@ -107,17 +107,17 @@ EntSwapAdaptApp::EntanglementSwapping ()
                           
   // flag x not used anymore
   Simulator::ScheduleNow (&QuantumPhyEntity::PartialTrace, m_qphyent,
-                          std::vector<std::string>{flag_x}, unused);    
+                          std::vector<std::string>{flag_x});    
 
-  Simulator::ScheduleNow (&QuantumPhyEntity::ApplyControledOperation, m_qphyent,
+  Simulator::ScheduleNow (&QuantumPhyEntity::ApplyControlledOperation, m_qphyent,
                           GetNode ()->GetObject<QuantumNode> ()->GetOwner (), QNS_GATE_PREFIX + "PZ",
                           QNS_GATE_PREFIX + "CZ", std::vector<std::complex<double>>{},
                           std::vector<std::string>{flag_z},
                           std::vector<std::string>{last_qubit});
   // flag z not used anymore
   Simulator::ScheduleNow (&QuantumPhyEntity::PartialTrace, m_qphyent,
-                          std::vector<std::string>{flag_z}, unused);
-  Simulator::ScheduleNow (&QuantumPhyEntity::Contract, m_qphyent);
+                          std::vector<std::string>{flag_z});
+  Simulator::ScheduleNow (&QuantumPhyEntity::Contract, m_qphyent, "greed");
 }
 
 void

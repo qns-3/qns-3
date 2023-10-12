@@ -1,3 +1,8 @@
+/*
+  To run this example:
+  NS_LOG="QuantumNetworkSimulator=info:QuantumPhyEntity=info|logic" ./ns3 run distill-nested-example
+
+*/
 #include "ns3/csma-module.h" // class CsmaHelper, NetDeviceContainer
 #include "ns3/internet-module.h" // class InternetStackHelper, Ipv6AddressHelper, Ipv6InterfaceContainer
 
@@ -13,6 +18,28 @@
 using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE ("DistillNestedExample");
+
+// N stands for the # of EPR pairs shared between Alice and Bob
+
+// #define N (4)
+/*
+Last round cost:
+  Evaluating tensor network of size 127
+   in 4.98379 secs
+  Evaluating tensor network of size 151
+   in 0.819106 secs
+Total time cost: 7 s
+*/
+#define N (8)
+/*
+Last round cost:
+  Evaluating tensor network of size 439
+   in 13.0032 secs
+  Evaluating tensor network of size 479
+   in 16.3508 secs
+Total time cost: 83 s
+*/
+
 
 int
 main ()
@@ -40,7 +67,7 @@ main ()
   //
   CsmaHelper csmaHelper;
   csmaHelper.SetChannelAttribute ("DataRate", DataRateValue (DataRate ("1000kbps")));
-  csmaHelper.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (2)));
+  csmaHelper.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (1e-1)));
   NetDeviceContainer devices = csmaHelper.Install (nodes);
 
   InternetStackHelper stack;
@@ -73,10 +100,17 @@ main ()
   // Setup the source application.
   //
   DistillNestedHelper srcHelper (qphyent, false, qconn);
-  Ptr<QuantumMemory> src_qubits = CreateObject<QuantumMemory> (
-      std::vector<std::string>{"A0", "A1", "A2", "A3", "A4", "A5", "A6", "A7"});
-  Ptr<QuantumMemory> dst_qubits = CreateObject<QuantumMemory> (
-      std::vector<std::string>{"B0", "B1", "B2", "B3", "B4", "B5", "B6", "B7"});
+
+  std::vector<std::string> qubits_alice = {};
+  std::vector<std::string> qubits_bob = {};
+  for (int i = 0; i < N; ++i)
+    {
+      qubits_alice.push_back ("A" + std::to_string (i));
+      qubits_bob.push_back ("B" + std::to_string (i));
+    }
+  Ptr<QuantumMemory> src_qubits = CreateObject<QuantumMemory> (qubits_alice);
+  Ptr<QuantumMemory> dst_qubits = CreateObject<QuantumMemory> (qubits_bob);
+
   srcHelper.SetAttribute ("SrcQubits", PointerValue (src_qubits));
   srcHelper.SetAttribute ("DstQubits", PointerValue (dst_qubits));
 
@@ -105,8 +139,12 @@ main ()
   //
   // Run the simulation.
   //
-  Simulator::Stop (Seconds (10.));
+  Simulator::Stop (Seconds(10.));
+  auto start = std::chrono::high_resolution_clock::now ();
   Simulator::Run ();
+  auto end = std::chrono::high_resolution_clock::now ();
+  printf ("Total time cost: %ld s\n",
+          std::chrono::duration_cast<std::chrono::seconds> (end - start).count ());
   Simulator::Destroy ();
 
   return 0;

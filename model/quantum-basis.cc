@@ -115,4 +115,19 @@ PickOutcome (const double &prob)
   return {1.0, 0.0};
 }
 
+std::vector<std::complex<double>> GetEPRwithFidelity (const double &f)
+{
+  std::vector<std::complex<double>> epr_dm = {
+    {f + 0.5, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {2 * f - 0.5, 0.0},
+    {0.0, 0.0}, {1.0 - f, 0.0}, {0.0, 0.0}, {0.0, 0.0},
+    {0.0, 0.0}, {0.0, 0.0}, {1.0 - f, 0.0}, {0.0, 0.0},
+    {2 * f - 0.5, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {f + 0.5, 0.0}
+  };
+  for (auto &val : epr_dm)
+    {
+      val /= 3;
+    }
+  return epr_dm;
+}
+
 } // namespace ns3

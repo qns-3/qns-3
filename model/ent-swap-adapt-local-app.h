@@ -15,7 +15,7 @@ class QuantumMemory;
 
 /**
  * \brief Entanglement swapping application with adaptation,
- * getting around long distance operations.
+ * getting around long distance operations, achieving a linear scaling.
  * 
  * This application is used to schedule a chained entanglement swapping
  * with only short distance control operations.

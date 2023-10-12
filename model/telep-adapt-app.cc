@@ -70,9 +70,6 @@ TelepAdaptApp::Teleport ()
                               std::vector<std::string>{m_qubits.first});
     }
   std::vector<std::complex<double>> input;
-  // Simulator::ScheduleNow (&QuantumPhyEntity::PeekDM, m_qphyent,
-  //                         m_conn->GetSrcOwner (), std::vector<std::string>{m_qubits.first}, input);
-
   // generate and distribute EPR
   Ptr<DistributeEPRSrcProtocol> dist_epr_src_app =
       m_qphyent->GetConn2Apps (m_conn, APP_DIST_EPR).first->GetObject<DistributeEPRSrcProtocol> ();
@@ -93,21 +90,27 @@ TelepAdaptApp::Teleport ()
 
   // God apply control operations
   Simulator::Schedule (
-      Seconds (0.1), &QuantumPhyEntity::ApplyControledOperation,
+      Seconds (0.1), &QuantumPhyEntity::ApplyControlledOperation,
       m_qphyent, m_conn->GetDstOwner (), QNS_GATE_PREFIX + "X", QNS_GATE_PREFIX + "CX", cnot,
       std::vector<std::string>{m_qubits.second}, std::vector<std::string>{m_qubit});
+  // the latter qubit of this owner is not used anymore
+  
+  Simulator::Schedule (Seconds (0.1), &QuantumPhyEntity::PartialTrace,
+                       m_qphyent, std::vector<std::string>{m_qubits.second});
 
   Simulator::Schedule (Seconds (0.1),
-                       &QuantumPhyEntity::ApplyControledOperation, m_qphyent,
+                       &QuantumPhyEntity::ApplyControlledOperation, m_qphyent,
                        m_conn->GetDstOwner (), QNS_GATE_PREFIX + "Z", QNS_GATE_PREFIX + "CZ",
                        std::vector<std::complex<double>>{},
                        std::vector<std::string>{m_qubits.first}, std::vector<std::string>{m_qubit});
-
-  // Simulator::Schedule (Seconds (0.1), &QuantumPhyEntity::Contract, m_qphyent);
-
+  // the former qubit of this owner is not used anymore
+  Simulator::Schedule (Seconds (0.1), &QuantumPhyEntity::PartialTrace,
+                       m_qphyent, std::vector<std::string>{m_qubits.first});
 
   if (m_last_owner == m_conn->GetDstOwner ())
     {
+    Simulator::Schedule (Seconds (0.1), &QuantumPhyEntity::Contract,
+                         m_qphyent, "ascend");
     std::vector<std::complex<double>> unused;
     Simulator::Schedule (Seconds (0.1), &QuantumPhyEntity::PeekDM,
                          m_qphyent, m_last_owner, std::vector<std::string>{m_qubit}, unused);

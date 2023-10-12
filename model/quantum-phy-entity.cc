@@ -186,14 +186,14 @@ QuantumPhyEntity::ApplyOperation (
 }
 
 bool
-QuantumPhyEntity::ApplyControledOperation (
+QuantumPhyEntity::ApplyControlledOperation (
     const std::string &orig_owner,
     const std::string &orig_gate,
     const std::string &gate,
     const std::vector<std::complex<double>> &data, const std::vector<std::string> &control_qubits,
     const std::vector<std::string> &target_qubits)
 {
-  bool succeed = m_qnetsim.ApplyControledOperation (orig_owner, orig_gate, gate, data,
+  bool succeed = m_qnetsim.ApplyControlledOperation (orig_owner, orig_gate, gate, data,
                                                     control_qubits, target_qubits);
 
   ApplyErrorModel (orig_owner, orig_gate, target_qubits);
@@ -235,8 +235,7 @@ QuantumPhyEntity::PeekDM (
 
 bool
 QuantumPhyEntity::PartialTrace (
-    const std::vector<std::string> &qubits,
-    std::vector<std::complex<double>> &dm
+  const std::vector<std::string> &qubits
 )
 {
   Time moment = Simulator::Now ();
@@ -245,13 +244,13 @@ QuantumPhyEntity::PartialTrace (
       ApplyErrorModel ({qubit}, moment);
     }
 
-  return m_qnetsim.PartialTrace (qubits, dm);
+  return m_qnetsim.PartialTrace (qubits);
 }
 
 std::vector<std::complex<double>>
-QuantumPhyEntity::Contract ()
+QuantumPhyEntity::Contract (const std::string &optimizer)
 {
-  return m_qnetsim.Contract ();
+  return m_qnetsim.Contract (optimizer);
 }
 
 Ptr<QuantumNode>
@@ -317,7 +316,8 @@ QuantumPhyEntity::ApplyErrorModel ( // using DepolarModel
 {
   NS_LOG_LOGIC ("Applying depolar error to EPR pair consisting of "
                 << epr.first << " and " << epr.second << " using DepolarModel between "
-                << conn.first << " and " << conn.second);
+                << conn.first << " and " << conn.second
+                << " at time " << Simulator::Now ());
 
   for (auto [conn, pmodel] : m_conn2model)
     {
@@ -326,8 +326,8 @@ QuantumPhyEntity::ApplyErrorModel ( // using DepolarModel
           NS_LOG_LOGIC ("Skipping default DepolarModel");
           continue;
         }
-      NS_LOG_LOGIC ("Connection " << conn.first << " <--> " << conn.second << " has DepolarModel "
-                                  << pmodel->GetTypeDesc ());
+      // NS_LOG_LOGIC ("Connection " << conn.first << " <--> " << conn.second << " has "
+      //                             << pmodel->GetTypeDesc ());
     }
   if (m_conn2model.find (conn) == m_conn2model.end ())
     { // default
@@ -383,6 +383,12 @@ QuantumPhyEntity::CalculateFidelity (const std::pair<std::string, std::string> &
 
 /* util */
 
+void
+QuantumPhyEntity::Evaluate ()
+{
+  m_qnetsim.Evaluate (nullptr);
+}
+
 bool
 QuantumPhyEntity::CheckValid (const std::vector<std::string> &qubits) const
 {
@@ -404,7 +410,8 @@ QuantumPhyEntity::CheckOwned (const std::string &owner,
     {
       if (!pnode->OwnQubit (qubit))
         {
-          NS_LOG_LOGIC (owner << " skips on qubit named " << qubit << " owned by others");
+          NS_LOG_LOGIC ("At time " << Simulator::Now () << " " << owner << " skips on qubit named "
+                        << qubit << " owned by others, if not about to generate it.");
           return false;
         }
     }
@@ -439,6 +446,12 @@ QuantumPhyEntity::SetOwnerRank (const std::string &owner, const unsigned &rank)
   m_owner2pnode[owner]->SetRank (rank);
 }
 
+
+void
+QuantumPhyEntity::Checkpoint ()
+{
+  m_qnetsim.Checkpoint ();
+}
 
 
 /* debug */

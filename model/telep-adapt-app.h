@@ -56,7 +56,7 @@ private:
 
   Ptr<QuantumPhyEntity> m_qphyent; /**< The quantum physical entity. */
   Ptr<QuantumChannel> m_conn; /**< The quantum connection. */
-  std::string m_last_owner; /**< The last owner of the qubit. */
+  std::string m_last_owner; /**< The last owner of the teleportation chain. */
   std::pair<std::string, std::string> m_qubits; /**< The two qubits of Alice. */
   std::string m_qubit; /**< The qubit of Bob. */
   Ptr<Qubit> m_input; /**< The pointer to the input qubit. */

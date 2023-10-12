@@ -1,3 +1,7 @@
+/*
+  To run this example:
+  NS_LOG="QuantumNetworkSimulator=info:QuantumPhyEntity=info|logic" ./ns3 run telep-lin-example
+*/
 #include "ns3/csma-module.h" // class CsmaHelper, NetDeviceContainer
 #include "ns3/internet-module.h" // class InternetStackHelper, Ipv6AddressHelper, Ipv6InterfaceContainer
 
@@ -19,8 +23,27 @@ NS_LOG_COMPONENT_DEFINE ("TelepLinExample");
 
 using namespace ns3;
 
-#define N (8) // 23 s
-// #define N (12) // 200 s
+// #define N (4)
+/*
+Last round cost:
+  Evaluating tensor network of size 110 in 3.83961 secs
+  Evaluating tensor network of size 112 in 2.02858 secs
+Total time cost: 12 s
+*/
+// #define N (8)
+/*
+Last round cost:
+  Evaluating tensor network of size 326 in 5.12221 secs
+  Evaluating tensor network of size 328 in 5.92808 secs
+Total time cost: 37 s
+*/
+#define N (12)
+/*
+Last round cost:
+  Evaluating tensor network of size 606 in 32.0905 secs
+  Evaluating tensor network of size 608 in 35.4042 secs
+Total time cost: 290 s
+*/
 
 int
 main ()
@@ -145,7 +168,7 @@ main ()
   auto start = std::chrono::high_resolution_clock::now ();
   Simulator::Run ();
   auto end = std::chrono::high_resolution_clock::now ();
-  printf ("Time taken: %ld s\n",
+  printf ("Total time cost: %ld s\n",
           std::chrono::duration_cast<std::chrono::seconds> (end - start).count ());
   Simulator::Destroy ();
 

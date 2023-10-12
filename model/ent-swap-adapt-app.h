@@ -14,7 +14,7 @@ class QuantumPhyEntity;
 class QuantumMemory;
 
 /**
- * \brief Entanglement swapping application with adaptation.
+ * \brief Entanglement swapping application with (less gratifying an) adaptation.
  * 
  * This application is used to schedule a chained entanglement swapping
  * with long distance operations.

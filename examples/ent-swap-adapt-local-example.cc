@@ -1,3 +1,8 @@
+/* 
+  To run this example:
+  NS_LOG="QuantumNetworkSimulator=info:QuantumPhyEntity=info|logic" ./ns3 run ent-swap-adapt-local-example
+*/
+
 #include "ns3/csma-module.h" // class CsmaHelper, NetDeviceContainer
 #include "ns3/internet-module.h" // class InternetStackHelper, Ipv6AddressHelper, Ipv6InterfaceContainer
 
@@ -21,10 +26,36 @@ NS_LOG_COMPONENT_DEFINE ("EntSwapAdaptLocalExample");
 
 using namespace ns3;
 
-// #define N (8) // 0s, 116 tensors
-#define N (16) // 3s, 260 tensors
-// #define N (32) // 28 s, 548 tensors
-// #define N (64) // 260 s, 1124 tensors
+
+/* 
+  With proper control flow adaptation,
+  the time cost of contraction scales linearly with N, the number of owners:
+*/
+
+// #define N (8)
+/*
+Evaluating tensor network of size 71 in 2.44344 secs
+*/
+// #define N (16)
+/*
+Evaluating tensor network of size 159 in 5.48751 secs
+*/
+// #define N (32)
+/*
+Evaluating tensor network of size 335 in 11.2599 secs
+*/
+#define N (64)
+/*
+Evaluating tensor network of size 687 in 23.3415 secs
+*/
+// #define N (128)
+/*
+Evaluating tensor network of size 1391 in 39.0065 secs
+*/
+// #define N (1024)
+/*
+Evaluating tensor network of size 11247 in 333.711 secs
+*/
 
 int
 main ()
@@ -45,6 +76,11 @@ main ()
       Ptr<QuantumNode> node = qphyent->GetNode (owners[i]);
       nodes.Add (node);
     }
+
+  // set the PX and PZ gate error of Owner N - 1 
+  Ptr<QuantumNode> last_node = qphyent->GetNode ("Owner" + std::to_string (N - 1));
+  last_node->SetDephaseModel (QNS_GATE_PREFIX + "PX", 1.2);
+  last_node->SetDephaseModel (QNS_GATE_PREFIX + "PZ", 1.2);
 
   //
   // Create a classical connection.
@@ -78,27 +114,6 @@ main ()
   //
   // Install the quantum applications.
   //
-
-  //
-  // Every node but the last one generates and shares a EPR pair with the next
-  //
-  for (int rank = 0; rank < N - 1; ++rank) {
-    std::string srcOwner = "Owner" + std::to_string (rank);
-    std::string lastOwner = "Owner" + std::to_string (rank + 1);
-    Ptr<QuantumChannel> qconn = CreateObject<QuantumChannel> (srcOwner, lastOwner);
-    // generate and distribute EPR
-    Ptr<DistributeEPRSrcProtocol> dist_epr_src_app =
-        qphyent->GetConn2Apps (qconn, APP_DIST_EPR).first->GetObject<DistributeEPRSrcProtocol> ();
-    Simulator::Schedule (Seconds(SETUP_DELAY), &DistributeEPRSrcProtocol::GenerateAndDistributeEPR,
-                         dist_epr_src_app, std::pair<std::string, std::string>{
-                          "Owner" + std::to_string (rank) + "_Qubit1",
-                          "Owner" + std::to_string (rank + 1) + "_Qubit0"});
-  }
-
-
-  //
-  // Setup the N - 2 entanglement swappings
-  //
   std::vector<std::string> former_qubits_vec = {""};
   std::vector<std::string> latter_qubits_vec = {"Owner0_Qubit1"};
   for (int rank = 1; rank < N - 1; ++rank) {
@@ -129,13 +144,10 @@ main ()
   auto start = std::chrono::high_resolution_clock::now ();
   Simulator::Run ();
   auto end = std::chrono::high_resolution_clock::now ();
-  printf ("Time taken: %ld s\n",
+  printf ("Total time cost: %ld s\n",
           std::chrono::duration_cast<std::chrono::seconds> (end - start).count ());
   Simulator::Destroy ();
 
   return 0;
 }
 
-/* 
-  NS_LOG="QuantumBasis=info:QuantumNetworkSimulator=info:EntSwapAdaptApp=logic:DistributeEPRProtocol=info:QuantumNode=info" ./ns3 run ent-swap-adapt-local-example
-*/

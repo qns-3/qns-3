@@ -158,9 +158,7 @@ DistillNestedApp::Distillate (
       Simulator::Schedule (GetOccupied (), &DistillNestedApp::DistillateOnce, this, src_qubits,
                            dst_qubits); // distillate the two EPR pairs to get one
       Occupy (Seconds (0.1));
-      std::vector<std::complex<double>> unused;
-      // Simulator::Schedule (GetOccupied (), &QuantumPhyEntity::PeekDM, m_qphyent, "God",
-      //                      std::vector<std::string>{src_qubits[0], dst_qubits[0]}, unused);
+      
     }
   else
     { // Bob

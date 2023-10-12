@@ -2,8 +2,12 @@
 
 namespace ns3 {
 
-Qubit::Qubit (const std::vector<std::complex<double>> &state_vector_)
-    : m_state_vector (state_vector_)
+Qubit::Qubit (
+  const std::vector<std::complex<double>> &state_vector_,
+  const std::string &qubit_
+)
+  : m_state_vector (state_vector_),
+    m_qubit (qubit_)
 {
 }
 
@@ -29,4 +33,9 @@ Qubit::GetStateVector () const
   return m_state_vector;
 }
 
+std::string
+Qubit::GetName () const
+{
+  return m_qubit;
+}
 } // namespace ns3

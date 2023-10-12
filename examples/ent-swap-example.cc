@@ -1,3 +1,8 @@
+/* 
+  To run this example:
+  NS_LOG="QuantumBasis=info:QuantumNetworkSimulator=info:EntSwapAdaptApp=logic:DistributeEPRProtocol=info:QuantumNode=info" ./ns3 run ent-swap-example
+*/
+
 #include "ns3/csma-module.h" // class CsmaHelper, NetDeviceContainer
 #include "ns3/internet-module.h" // class InternetStackHelper, Ipv6AddressHelper, Ipv6InterfaceContainer
 
@@ -20,9 +25,33 @@ NS_LOG_COMPONENT_DEFINE ("EntSwapExample");
 
 using namespace ns3;
 
-// #define N (4) // 3 s, 62 tensors
-#define N (8) // 12 s, 206 tensors
-// #define N (16) // 821 s, 686 tensors (the last contraction takes 46 s)
+/* 
+  Without any adaptation, 
+  linearly measurements/contractions are performed, and
+  the time cost of contraction scales exponentially with N, the number of owners:
+*/
+
+// #define N (4)
+/*
+Last round cost:
+  Evaluating tensor network of size 53 in 1.74639 secs
+  Evaluating tensor network of size 51 in 1.7396 secs
+Total time cost: 5 s
+*/
+// #define N (8)
+/*
+Last round cost:
+  Evaluating tensor network of size 195 in 7.71973 secs
+  Evaluating tensor network of size 197 in 7.99151 secs
+Total time cost: 38 s
+*/
+#define N (16)
+/*
+Last round cost:
+  Evaluating tensor network of size 675 in 67.8974 secs
+  Evaluating tensor network of size 677 in 68.1694 secs
+Total time cost: 1027 s
+*/
 
 int
 main ()
@@ -134,13 +163,9 @@ main ()
   auto start = std::chrono::high_resolution_clock::now ();
   Simulator::Run ();
   auto end = std::chrono::high_resolution_clock::now ();
-  printf ("Time taken: %ld s\n",
+  printf ("Total time cost: %ld s\n",
           std::chrono::duration_cast<std::chrono::seconds> (end - start).count ());
   Simulator::Destroy ();
 
   return 0;
 }
-
-/* 
-  NS_LOG="QuantumBasis=info:QuantumNetworkSimulator=info:EntSwapAdaptApp=logic:DistributeEPRProtocol=info:QuantumNode=info" ./ns3 run ent-swap-example
-*/

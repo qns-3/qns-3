@@ -1,3 +1,9 @@
+/*
+  To run this example:
+  NS_LOG="QuantumNetworkSimulator=info:QuantumPhyEntity=info|logic:TelepLinAdaptApp=logic" ./ns3 run telep-lin-adapt-example
+  Note that by adding "TelepLinAdaptApp=logic", the simulator logs the details of the whole process of chained teleportation.
+  Also note that to simulate a longer chain, the allocation of addresses and ports needs to be modified.
+*/
 #include "ns3/csma-module.h" // class CsmaHelper, NetDeviceContainer
 #include "ns3/internet-module.h" // class InternetStackHelper, Ipv6AddressHelper, Ipv6InterfaceContainer
 
@@ -8,8 +14,8 @@
 #include "ns3/quantum-channel.h" // class QuantumChannel
 #include "ns3/distribute-epr-helper.h" // class DistributeEPRSrcHelper, DistributeEPRDstHelper
 #include "ns3/quantum-net-stack-helper.h" // class QuantumNetStackHelper
-#include "ns3/telep-adapt-helper.h" // class TelepAdaptHelper
-#include "ns3/telep-adapt-app.h" // class TelepAdaptApp
+#include "ns3/telep-lin-adapt-helper.h" // class TelepLinAdaptHelper
+#include "ns3/telep-lin-adapt-app.h" // class TelepLinAdaptApp
 
 #include <iostream>
 #include <cmath>
@@ -19,10 +25,34 @@ NS_LOG_COMPONENT_DEFINE ("TelepLinAdaptExample");
 
 using namespace ns3;
 
-// #define N (5)
-#define N (8) // 1 s, 198 tensors
-// #define N (16) // 12 s, 422 tensors
-// #define N (32) // 133 s, 870 tensors
+// #define N (8)
+/*
+Evaluating tensor network of size 202
+ in 6.33792 secs
+/*
+// #define N (16)
+/*
+Evaluating tensor network of size 426
+ in 12.8941 secs
+*/
+// #define N (32)
+/*
+Evaluating tensor network of size 874
+ in 26.6684 secs
+*/
+// #define N (64)
+/*
+Evaluating tensor network of size 1770
+ in 54.291 secs
+*/
+#define N (72)
+/*
+Evaluating tensor network of size 1994
+ in 61.025 secs
+*/
+
+
+
 
 int
 main ()
@@ -49,7 +79,7 @@ main ()
   //
   CsmaHelper csmaHelper;
   csmaHelper.SetChannelAttribute ("DataRate", DataRateValue (DataRate ("1000kbps")));
-  csmaHelper.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (0.1)));
+  csmaHelper.SetChannelAttribute ("Delay", TimeValue (MilliSeconds (1e-1)));
   NetDeviceContainer devices = csmaHelper.Install (nodes);
 
   InternetStackHelper stack;
@@ -79,24 +109,24 @@ main ()
   // 
   // Setup the first teleporatation from Owner0 to Owner1.
   //
-  Ptr<QuantumChannel> qconn1 = CreateObject<QuantumChannel> ("Owner0", "Owner1");
-  qconn1->SetDepolarModel (0.93, qphyent);
+  Ptr<QuantumChannel> qconn0 = CreateObject<QuantumChannel> ("Owner0", "Owner1");
+  qconn0->SetDepolarModel (0.95, qphyent);
 
-  Ptr<Qubit> input1 = CreateObject<Qubit> (std::vector<std::complex<double>>{
+  Ptr<Qubit> input = CreateObject<Qubit> (std::vector<std::complex<double>>{
       {sqrt (5. / 7.), 0.0},
-      {0.0, sqrt (2. / 7.)}});
-  TelepAdaptHelper helper1 (qphyent, qconn1);
-  helper1.SetAttribute ("Qubits",
-                        PairValue<StringValue, StringValue> ({"Owner0_Qubit0", "Owner0_Qubit1"}));
-  helper1.SetAttribute ("Qubit", StringValue ("Owner1_Qubit0"));
-  helper1.SetAttribute ("Input", PointerValue (input1));
+      {0.0, sqrt (2. / 7.)}},
+      "Owner0_Qubit0");
+  TelepLinAdaptHelper helper0 (qphyent, qconn0);
+  helper0.SetAttribute ("EPR",
+                        PairValue<StringValue, StringValue> ({"Owner0_Qubit1", "Owner1_Qubit0"}));
+  helper0.SetAttribute ("Input", PointerValue (input));
 
-  ApplicationContainer srcApp1 = helper1.Install (qphyent->GetNode ("Owner1"));
-  srcApp1.Start (Seconds (0.));
-  srcApp1.Stop (Seconds (CLASSICAL_DELAY));
+  ApplicationContainer app0 = helper0.Install (qphyent->GetNode ("Owner0"));
+  app0.Start (Seconds (0.));
+  app0.Stop (Seconds(ETERNITY));
 
   //
-  // Setup the rest N - 2 teleportations from Owner1 to OwnerN-1.
+  // Setup the intermediate N - 2 teleportations from Owner1 to OwnerN-2.
   //
   for (int rank = 1; rank < N - 1; ++rank)
     {
@@ -105,19 +135,30 @@ main ()
 
       Ptr<QuantumChannel> qconn =
           CreateObject<QuantumChannel> (std::pair<std::string, std::string>{srcOwner, dstOwner});
-      qconn->SetDepolarModel (0.93, qphyent);
+      qconn->SetDepolarModel (0.98, qphyent);
 
-      TelepAdaptHelper helper (qphyent, qconn);
-      helper.SetAttribute ("Qubits", PairValue<StringValue, StringValue> (
-                                         {srcOwner + "_Qubit0", srcOwner + "_Qubit1"}));
-      helper.SetAttribute ("Qubit", StringValue (dstOwner + "_Qubit0"));
+      TelepLinAdaptHelper helper (qphyent, qconn);
+      helper.SetAttribute ("EPR", PairValue<StringValue, StringValue> (
+                            {srcOwner + "_Qubit1", dstOwner + "_Qubit0"}
+                          ));
       helper.SetAttribute ("Input", PointerValue (nullptr));
-      helper.SetAttribute ("LastOwner", StringValue ("Owner" + std::to_string (N - 1)));
 
-      ApplicationContainer srcApp = helper.Install (qphyent->GetNode (srcOwner));
-      srcApp.Start (Seconds (CLASSICAL_DELAY * rank));
-      srcApp.Stop (Seconds (CLASSICAL_DELAY * (rank + 1)));
+      ApplicationContainer app = helper.Install (qphyent->GetNode (srcOwner));
+      app.Start (Seconds (0.));
+      app.Stop (Seconds(ETERNITY));
     }
+
+  //
+  // Setup the teleportation application for OwnerN-1.
+  //
+  Ptr<QuantumChannel> qconnN = nullptr;
+  TelepLinAdaptHelper helperN (qphyent, qconnN);
+  helperN.SetAttribute ("EPR", PairValue<StringValue, StringValue> ({"", ""}));
+  helperN.SetAttribute ("Input", PointerValue (nullptr));
+
+  ApplicationContainer appN = helperN.Install (qphyent->GetNode ("Owner" + std::to_string (N - 1)));
+  appN.Start (Seconds (0.));
+  appN.Stop (Seconds(ETERNITY));
 
   //
   // Run the simulation.
@@ -126,8 +167,8 @@ main ()
   auto start = std::chrono::high_resolution_clock::now ();
   Simulator::Run ();
   auto end = std::chrono::high_resolution_clock::now ();
-  printf ("Time taken: %ld ms\n",
-          std::chrono::duration_cast<std::chrono::milliseconds> (end - start).count ());
+  printf ("Total time cost: %ld s\n",
+          std::chrono::duration_cast<std::chrono::seconds> (end - start).count ());
   Simulator::Destroy ();
 
   return 0;

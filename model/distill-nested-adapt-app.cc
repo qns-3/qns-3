@@ -147,7 +147,7 @@ DistillNestedAdaptApp::Distillate (
 
       Simulator::Schedule (GetOccupied (), &DistillNestedAdaptApp::DistillateOnce, this, src_qubits,
                            dst_qubits); // distillate the two EPR pairs to get one
-      // Occupy (Seconds (0.03));
+      // Occupy (Seconds (DIST_EPR_DELAY));
     }
   else
     { // Bob
@@ -160,11 +160,13 @@ DistillNestedAdaptApp::DistillateOnce (
     const std::vector<std::string>
         &dst_qubits)
 {
-  NS_LOG_LOGIC (PURPLE_CODE << "DistillatingOnce to get " << src_qubits[0] << " " << dst_qubits[0]
-                            << " at time " << GetOccupied ().As (Time::S) << " s"
-                            << " at the cost of " << src_qubits[src_qubits.size () / 2] << " "
-                            << dst_qubits[dst_qubits.size () / 2] << END_CODE);
+  NS_LOG_INFO (PURPLE_CODE << "Distillating once to get " << src_qubits[0] << " " << dst_qubits[0]
+                           << " at time " << GetOccupied ().As (Time::S) << " s"
+                           << " at the cost of " << src_qubits[src_qubits.size () / 2] << " "
+                           << dst_qubits[dst_qubits.size () / 2] << END_CODE);
 
+  Simulator::Schedule (GetOccupied (), &QuantumPhyEntity::Checkpoint, m_qphyent);
+  
   if (!m_checker)
     { // Alice
 
@@ -184,14 +186,14 @@ DistillNestedAdaptApp::DistillateOnce (
                         << " " << epr_goal.second);
           Simulator::Schedule (GetOccupied (), &DistributeEPRSrcProtocol::GenerateAndDistributeEPR,
                                dist_epr_src_app, epr_goal);
-          Occupy (Seconds (0.03));
+          Occupy (Seconds (DIST_EPR_DELAY));
 
           NS_LOG_LOGIC ("Scheduling a GenerateAndDistributeEPR at occupied time = "
                         << GetOccupied ().As (Time::S) << " s to dist EPR pair " << epr_meas.first
                         << " " << epr_meas.second);
           Simulator::Schedule (GetOccupied (), &DistributeEPRSrcProtocol::GenerateAndDistributeEPR,
                                dist_epr_src_app, epr_meas);
-          Occupy (Seconds (0.03));
+          Occupy (Seconds (DIST_EPR_DELAY));
         }
 
       std::vector<std::complex<double>> unused;
@@ -212,7 +214,7 @@ DistillNestedAdaptApp::DistillateOnce (
                            std::vector<std::string>{epr_meas.second, epr_meas.first});
       // Alice's meas qubit is not used anymore
       Simulator::Schedule (GetOccupied (), &QuantumPhyEntity::PartialTrace, m_qphyent,
-                           std::vector<std::string>{epr_meas.first}, unused);
+                           std::vector<std::string>{epr_meas.first});
       
       // negate the parity (1 wanted)
       Simulator::Schedule (GetOccupied (), &QuantumPhyEntity::ApplyGate, m_qphyent, "God",
@@ -229,15 +231,15 @@ DistillNestedAdaptApp::DistillateOnce (
                            std::vector<std::string>{anc, epr_meas.second, m_flag_qubit});
       // Bob's meas qubit is not used anymore
       Simulator::Schedule (GetOccupied (), &QuantumPhyEntity::PartialTrace, m_qphyent,
-                           std::vector<std::string>{epr_meas.second}, unused); 
+                           std::vector<std::string>{epr_meas.second}); 
       
       // swap, store the result in flag (1 wanted)
-      Simulator::Schedule (GetOccupied (), &QuantumPhyEntity::ApplyGate, m_qphyent,
-                           m_pnode->GetOwner (), QNS_GATE_PREFIX + "SWAP", swap,
+      Simulator::Schedule (GetOccupied (), &QuantumPhyEntity::ApplyGate, m_qphyent, "God",
+                           QNS_GATE_PREFIX + "SWAP", swap,
                            std::vector<std::string>{anc, m_flag_qubit});
       // ancilla qubit is not used anymore
       Simulator::Schedule (GetOccupied (), &QuantumPhyEntity::PartialTrace, m_qphyent,
-                           std::vector<std::string>{anc}, unused);
+                           std::vector<std::string>{anc});
 
       NS_LOG_LOGIC ("Scheduling a CNOT + PX + TOFF + SWAP + Trace at occupied time = "
                     << GetOccupied ().As (Time::S) << " s to get EPR pair " << epr_goal.first << " "
@@ -245,7 +247,7 @@ DistillNestedAdaptApp::DistillateOnce (
                     << epr_meas.second << " and ancilla qubit " << anc);
       
       if (src_qubits.size () == m_src_qubits->GetSize ()) { // the last distillation
-        double fidel;
+        Simulator::Schedule (GetOccupied (), &QuantumPhyEntity::Contract, m_qphyent, "distill");
         // peek the goal epr
         Simulator::Schedule (GetOccupied (), &QuantumPhyEntity::PeekDM, m_qphyent, 
                            "God", std::vector<std::string>{epr_goal.first, epr_goal.second}, unused);
@@ -254,9 +256,9 @@ DistillNestedAdaptApp::DistillateOnce (
         // peek the goal epr again (could be better or worse)
         Simulator::Schedule (GetOccupied (), &QuantumPhyEntity::PeekDM, m_qphyent, 
                            "God", std::vector<std::string>{epr_goal.first, epr_goal.second}, unused);
+        double fidel;
         Simulator::Schedule (GetOccupied (), &QuantumPhyEntity::CalculateFidelity, m_qphyent,
-                            std::pair<std::string, std::string> {src_qubits[0], dst_qubits[0]}, fidel);
-        Simulator::Schedule (GetOccupied (), &QuantumPhyEntity::Contract, m_qphyent);
+                            epr_goal, fidel);
       }
     }
   else
@@ -423,7 +425,6 @@ DistillNestedAdaptApp::StartApplication ()
 
       Simulator::Schedule (GetOccupied (), &DistillNestedAdaptApp::Distillate, this, src_qubits,
                            dst_qubits);
-      std::vector<std::complex<double>> unused;
     }
   else
     { // Bob

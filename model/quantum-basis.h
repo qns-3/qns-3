@@ -36,7 +36,7 @@ namespace ns3 {
 #define EPS (1e-6)
 
 /** A large enough number of seconds since each Simulator::Run (). */
-#define ETERNITY (1024)
+#define ETERNITY (1e5)
 
 /** Delimeter to separate different fields in a message. */
 #define DELIM (".")
@@ -151,6 +151,8 @@ const std::vector<std::complex<double>> q_bell = {
     {0.0, 0.0},
     {0.0, 0.0},
     {1. / sqrt (2), 0.0}};
+
+std::vector<std::complex<double>> GetEPRwithFidelity (const double &fidelity);
 
 /** Pauli I gate. */
 const std::vector<std::complex<double>> pauli_I = {{1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {1.0, 0.0}};

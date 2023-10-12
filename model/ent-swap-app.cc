@@ -132,9 +132,9 @@ EntSwapSrcApp::MeasureAndSend ()
   NS_LOG_LOGIC ("     => " << m_conn->GetSrcOwner ()
                            << "'s latter qubit is measured to outcome-1 = " << outcome_Q1.first);
 
-  std::vector<std::complex<double>> unused;
+  
   Simulator::ScheduleNow (&QuantumPhyEntity::PartialTrace, m_qphyent,
-                          std::vector<std::string>{m_qubits.first, m_qubits.second}, unused);
+                          std::vector<std::string>{m_qubits.first, m_qubits.second});
 
   std::string outcomes_send = std::to_string (outcome_Q0.first) + std::to_string (outcome_Q1.first);
   SetFill ((uint8_t *) &outcomes_send[0], 3, 1024);

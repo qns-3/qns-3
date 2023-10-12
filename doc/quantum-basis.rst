@@ -153,6 +153,8 @@ The following examples have been written, which can be found in ``examples/``:
 
 * ent-swap-adapt-local-example.cc: Implementation of the chained entanglement swapping protocol with another possible control flow adaption in order to further optimise the simulation process, getting around long distance operations.
 
+* ent-swap-lin-adapt-local-example.cc: Implementation of the chained entanglement swapping protocol by using the chained teleportation protocol with control flow adaption.
+
 Troubleshooting
 ===============
 

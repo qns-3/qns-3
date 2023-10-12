@@ -31,6 +31,7 @@ build_lib(
                 model/distribute-epr-protocol.cc
                 model/telep-app.cc
                 model/telep-adapt-app.cc
+                model/telep-lin-adapt-app.cc
                 model/ent-swap-app.cc
                 model/ent-swap-adapt-app.cc
                 model/ent-swap-adapt-local-app.cc
@@ -43,6 +44,7 @@ build_lib(
                 helper/distribute-epr-helper.cc
                 helper/telep-helper.cc
                 helper/telep-adapt-helper.cc
+                helper/telep-lin-adapt-helper.cc
                 helper/ent-swap-helper.cc
                 helper/ent-swap-adapt-helper.cc
                 helper/ent-swap-adapt-local-helper.cc
@@ -63,6 +65,7 @@ build_lib(
                 model/distribute-epr-protocol.h
                 model/telep-app.h
                 model/telep-adapt-app.h
+                model/telep-lin-adapt-app.h
                 model/ent-swap-app.h
                 model/ent-swap-adapt-app.h
                 model/ent-swap-adapt-local-app.h
@@ -75,6 +78,7 @@ build_lib(
                 helper/distribute-epr-helper.h
                 helper/telep-helper.h
                 helper/telep-adapt-helper.h
+                helper/telep-lin-adapt-helper.h
                 helper/ent-swap-helper.h
                 helper/ent-swap-adapt-helper.h
                 helper/ent-swap-adapt-local-helper.h

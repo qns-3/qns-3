@@ -140,7 +140,7 @@ public:
    * 
    * \note If the gate is not a reserved one (defined in QBasis), the data size must be 2^n * 2^n.
   */
-  bool ApplyControledOperation (
+  bool ApplyControlledOperation (
       const std::string &orig_owner,
       const std::string &orig_gate,
       const std::string &gate,
@@ -182,19 +182,17 @@ public:
    * \internal Update errors. Call QuantumNetworkSimulator.
    * 
    * \param qubits Names of the qubits to be traced out.
-   * \param dm Vector to store the density matrix of the qubits.
    * \return True if the wires are connected successfully.
   */
   bool
-  PartialTrace (const std::vector<std::string> &qubits,
-                std::vector<std::complex<double>> &dm
+  PartialTrace (const std::vector<std::string> &qubits
   );
 
   /**
    * \brief Contract the tensor network to a single tensor.
    * \return The density matrix of the tensor.
   */
-  std::vector<std::complex<double>> Contract ();
+  std::vector<std::complex<double>> Contract (const std::string &optimizer = "greed");
   
   /**
    * \brief Get a pointer to a quantum node by its owner name.
@@ -267,6 +265,8 @@ public:
 
 /* util */
 
+  void Evaluate ();
+  
   /**
    * \brief Check if the qubits are valid (not traced out).
    * 
@@ -334,6 +334,10 @@ public:
   */
   void SetOwnerRank (const std::string &owner, const unsigned &rank);
 
+  /**
+   * \brief Help the "distill" optimizer to contract the tree of subcircuits.
+  */
+  void Checkpoint ();
 
 
 /* debug */
