@@ -75,7 +75,7 @@ When building and running `ExaTN`, we recommand you follow the [official tutoria
 5. Use the following method to install `ExaTN`.
 
    ```bash
-   $ CC=gcc-11 CXX=g++-11 FC=gfortran-11 cmake .. -DCMAKE_BUILD_TYPE=Release -DMPI_LIB=OPENMPI -DMPI_ROOT_DIR=/usr/lib/x86_64-linux-gnu/openmpi/lib/ -DBLAS_LIB=OPENBLAS -DBLAS_PATH=/usr/lib/x86_64-linux-gnu/openblas-pthread/
+   $ CC=gcc-11 CXX=g++-11 FC=gfortran-11 cmake .. -DCMAKE_BUILD_TYPE=Release -DMPI_LIB=OPENMPI -DMPI_ROOT_DIR=/usr/lib/x86_64-linux-gnu/openmpi/ -DBLAS_LIB=OPENBLAS -DBLAS_PATH=/usr/lib/x86_64-linux-gnu/openblas-pthread/
    $ make -j install
    ```
 
